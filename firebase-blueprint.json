@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "user_ledger": {
+      "title": "UserLedger",
+      "description": "Private expense ledger data owned and managed exclusively by the authenticated user",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owner"
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "Email address of the authenticated user"
+        },
+        "transactions": {
+          "type": "array",
+          "description": "List of recorded transactions"
+        },
+        "categories": {
+          "type": "array",
+          "description": "List of user-defined categories"
+        },
+        "defaultAllowance": {
+          "type": "number",
+          "description": "Default monthly allowance amount"
+        },
+        "updatedAt": {
+          "type": "number",
+          "description": "Timestamp of the last update"
+        }
+      },
+      "required": ["userId", "transactions", "categories", "defaultAllowance", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/ledger/main": {
+      "schema": "user_ledger",
+      "description": "Stores user-specific private ledger accessible only by the owner"
+    }
+  }
+}

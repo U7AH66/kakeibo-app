@@ -1,0 +1,6 @@
+{
+  "name": "お小遣い・請求自動集計ノート",
+  "description": "項目と金額を入力するだけで品目別に自動加算し、毎月の支出合計や残高を管理・メモ形式で出力できる家計簿ノート",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
