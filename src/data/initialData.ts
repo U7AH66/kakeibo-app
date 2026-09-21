@@ -1,7 +1,6 @@
 import { CategoryItem, Transaction } from '../types';
 
 export const DEFAULT_CATEGORIES: CategoryItem[] = [
-  { id: 'cat-allowance', name: 'お小遣い', iconName: 'Coins' },
   { id: 'cat-food', name: '食費', iconName: 'Utensils' },
   { id: 'cat-daily', name: '日用品', iconName: 'ShoppingBag' },
   { id: 'cat-transport', name: '交通費', iconName: 'Train' },
@@ -10,6 +9,7 @@ export const DEFAULT_CATEGORIES: CategoryItem[] = [
   { id: 'cat-communication', name: '通信費', iconName: 'Smartphone' },
   { id: 'cat-beauty', name: '美容・衣服', iconName: 'Scissors' },
   { id: 'cat-hobby', name: '趣味・娯楽', iconName: 'Sparkles' },
+  { id: 'cat-allowance', name: 'お小遣い', iconName: 'Coins' },
   { id: 'cat-other', name: 'その他', iconName: 'Tag' },
 ];
 

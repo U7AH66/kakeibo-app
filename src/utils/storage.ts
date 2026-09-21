@@ -2,11 +2,11 @@ import { CategoryItem, ColorTheme, ThemeMode, Transaction } from '../types';
 import { DEFAULT_CATEGORIES, INITIAL_TRANSACTIONS } from '../data/initialData';
 
 const STORAGE_KEYS = {
-  TRANSACTIONS: 'expense_ledger_transactions_v3',
-  CATEGORIES: 'expense_ledger_categories_v3',
-  DEFAULT_ALLOWANCE: 'expense_ledger_default_allowance_v3',
-  THEME_MODE: 'expense_ledger_theme_mode_v3',
-  COLOR_THEME: 'expense_ledger_color_theme_v3',
+  TRANSACTIONS: 'expense_ledger_transactions_v4',
+  CATEGORIES: 'expense_ledger_categories_v4',
+  DEFAULT_ALLOWANCE: 'expense_ledger_default_allowance_v4',
+  THEME_MODE: 'expense_ledger_theme_mode_v4',
+  COLOR_THEME: 'expense_ledger_color_theme_v4',
 };
 
 export function loadTransactions(): Transaction[] {
@@ -56,9 +56,9 @@ export function saveCategories(cats: CategoryItem[]): void {
 export function loadDefaultAllowance(): number {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.DEFAULT_ALLOWANCE);
-    return raw ? parseInt(raw, 10) : 6000;
+    return raw ? parseInt(raw, 10) : 0;
   } catch {
-    return 6000;
+    return 0;
   }
 }
 

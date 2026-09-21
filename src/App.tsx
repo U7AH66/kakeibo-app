@@ -62,7 +62,7 @@ export default function App() {
   // Data State
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [defaultAllowance, setDefaultAllowance] = useState<number>(6000);
+  const [defaultAllowance, setDefaultAllowance] = useState<number>(0);
   const [currentMonth, setCurrentMonth] = useState<string>(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -500,11 +500,10 @@ export default function App() {
     saveTransactions(INITIAL_TRANSACTIONS);
     setCategories(DEFAULT_CATEGORIES);
     saveCategories(DEFAULT_CATEGORIES);
-    setDefaultAllowance(6000);
-    saveDefaultAllowance(6000);
-    syncToCloud(INITIAL_TRANSACTIONS, DEFAULT_CATEGORIES, 6000);
-    setCurrentMonth('2026-09');
-    showToast('9月のサンプルデータ（合計38,724円）を復元・同期しました');
+    setDefaultAllowance(0);
+    saveDefaultAllowance(0);
+    syncToCloud(INITIAL_TRANSACTIONS, DEFAULT_CATEGORIES, 0);
+    showToast('データを初期状態にリセットしました');
   };
 
   const curConfig = THEME_CONFIGS[colorTheme];
@@ -547,8 +546,8 @@ export default function App() {
           colorTheme={colorTheme}
         />
 
-        {/* Quick prompt to add base allowance if missing */}
-        {!hasAllowanceThisMonth && (
+        {/* Quick prompt to add base allowance if user has configured one and it is missing */}
+        {defaultAllowance > 0 && !hasAllowanceThisMonth && (
           <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/90 dark:border-amber-800/50 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
             <div className="flex items-center space-x-2.5">
               <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-800 dark:text-amber-300">

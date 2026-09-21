@@ -98,10 +98,10 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
           <div className="p-4 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700">
             <div className="flex items-center space-x-2 text-xs font-bold text-neutral-800 dark:text-neutral-200 mb-1">
               <Coins className="w-4 h-4 text-emerald-500" />
-              <span>毎月のお小遣い基本額</span>
+              <span>毎月のお小遣い基本額（任意）</span>
             </div>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
-              毎月の開始時に自動計上される定額お小遣いを設定します
+              毎月定額のお小遣いを記録したい場合のみ設定してください（使わない場合は0円のままでOKです）
             </p>
             <form onSubmit={handleSaveAllowance} className="flex items-center gap-2">
               <div className="relative flex-1">
@@ -112,6 +112,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                   type="number"
                   min="0"
                   step="100"
+                  placeholder="0"
                   value={allowanceInput}
                   onChange={(e) => setAllowanceInput(e.target.value)}
                   className="w-full pl-7 pr-3 py-1.5 text-xs font-bold font-mono rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
