@@ -1,34 +1,73 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#F59E0B" />
-      <stop offset="100%" stop-color="#D97706" />
+    <!-- Background subtle off-white / light slate -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
     </linearGradient>
-    <linearGradient id="coinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#FEF3C7" />
-      <stop offset="100%" stop-color="#FDE68A" />
-    </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#78350F" flood-opacity="0.25"/>
+    <filter id="sheetShadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#000000" flood-opacity="0.35"/>
     </filter>
   </defs>
-  <!-- Rounded App Icon Background -->
-  <rect width="512" height="512" rx="115" fill="url(#bgGrad)" />
-  
-  <!-- Subtle inner border highlight -->
-  <rect x="8" y="8" width="496" height="496" rx="108" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-opacity="0.2" />
-  
-  <!-- Main Coin / Wallet Icon Element -->
-  <g filter="url(#shadow)">
-    <!-- Central Coin Plate -->
-    <circle cx="256" cy="256" r="150" fill="url(#coinGrad)" stroke="#B45309" stroke-width="10" />
-    <!-- Inner Dotted/Grooved Ring -->
-    <circle cx="256" cy="256" r="126" fill="none" stroke="#D97706" stroke-width="4" stroke-dasharray="8 8" />
-    
-    <!-- Yen Symbol in Center -->
-    <path d="M196 176 L236 244 L236 264 L204 264 L204 286 L236 286 L236 308 L204 308 L204 330 L236 330 L236 364 L276 364 L276 330 L308 330 L308 308 L276 308 L276 286 L308 286 L308 264 L276 264 L276 244 L316 176 L272 176 L256 208 L240 176 Z" fill="#92400E" />
+
+  <!-- iOS App Icon Squircle Background: Dark minimal slate -->
+  <rect width="512" height="512" rx="115" fill="url(#bg)" />
+
+  <!-- Sheet of Accounting Paper / Ledger card -->
+  <g filter="url(#sheetShadow)">
+    <rect x="96" y="76" width="320" height="360" rx="28" fill="#FFFFFF" />
   </g>
 
-  <!-- Little Sparkle / Star on Top-Right -->
-  <path d="M370 120 Q385 145 410 145 Q385 145 370 170 Q355 145 330 145 Q355 145 370 120 Z" fill="#FEF3C7" opacity="0.95" />
+  <!-- Top Header bar of the ledger (Warm Amber / Brand accent) -->
+  <path d="M96 104 C96 88.5 108.5 76 124 76 L388 76 C403.5 76 416 88.5 416 104 L416 136 L96 136 Z" fill="#F59E0B" />
+
+  <!-- Ledger Header Columns Simulation -->
+  <circle cx="128" cy="106" r="6" fill="#FEF3C7" />
+  <circle cx="152" cy="106" r="6" fill="#FEF3C7" />
+  <rect x="300" y="100" width="86" height="12" rx="6" fill="#FEF3C7" opacity="0.9" />
+
+  <!-- Vertical Divider (Column line separating Category & Amount) -->
+  <line x1="288" y1="136" x2="288" y2="380" stroke="#E2E8F0" stroke-width="3" stroke-dasharray="6 4" />
+
+  <!-- Horizontal Row 1 -->
+  <line x1="120" y1="184" x2="392" y2="184" stroke="#F1F5F9" stroke-width="2" />
+  <!-- Row 1: Item tag & bar -->
+  <rect x="124" y="152" width="24" height="20" rx="6" fill="#EEF2F6" />
+  <rect x="158" y="156" width="90" height="12" rx="6" fill="#334155" />
+  <!-- Row 1: Price / Amount -->
+  <rect x="312" y="156" width="76" height="12" rx="6" fill="#059669" />
+
+  <!-- Horizontal Row 2 -->
+  <line x1="120" y1="236" x2="392" y2="236" stroke="#F1F5F9" stroke-width="2" />
+  <!-- Row 2: Item tag & bar -->
+  <rect x="124" y="204" width="24" height="20" rx="6" fill="#EEF2F6" />
+  <rect x="158" y="208" width="104" height="12" rx="6" fill="#64748B" />
+  <!-- Row 2: Price / Amount -->
+  <rect x="328" y="208" width="60" height="12" rx="6" fill="#059669" />
+
+  <!-- Horizontal Row 3 -->
+  <line x1="120" y1="288" x2="392" y2="288" stroke="#F1F5F9" stroke-width="2" />
+  <!-- Row 3: Item tag & bar -->
+  <rect x="124" y="256" width="24" height="20" rx="6" fill="#EEF2F6" />
+  <rect x="158" y="260" width="72" height="12" rx="6" fill="#64748B" />
+  <!-- Row 3: Price / Amount -->
+  <rect x="306" y="260" width="82" height="12" rx="6" fill="#059669" />
+
+  <!-- Horizontal Row 4 -->
+  <line x1="120" y1="340" x2="392" y2="340" stroke="#F1F5F9" stroke-width="2" />
+  <!-- Row 4: Item tag & bar -->
+  <rect x="124" y="308" width="24" height="20" rx="6" fill="#EEF2F6" />
+  <rect x="158" y="312" width="84" height="12" rx="6" fill="#94A3B8" />
+  <!-- Row 4: Price / Amount -->
+  <rect x="336" y="312" width="52" height="12" rx="6" fill="#059669" />
+
+  <!-- Bottom Summary / Total Section -->
+  <rect x="96" y="364" width="320" height="72" rx="0 0 28 28" fill="#F8FAFC" />
+  <line x1="96" y1="364" x2="416" y2="364" stroke="#CBD5E1" stroke-width="2" />
+  <!-- Total label -->
+  <rect x="124" y="392" width="48" height="16" rx="6" fill="#475569" />
+  <!-- Total Yen sum badge -->
+  <rect x="290" y="386" width="98" height="26" rx="8" fill="#F59E0B" />
+  <!-- Yen icon simulation inside total -->
+  <text x="339" y="405" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="bold" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">¥ 計</text>
 </svg>
