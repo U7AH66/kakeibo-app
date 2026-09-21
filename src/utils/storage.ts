@@ -2,34 +2,24 @@ import { CategoryItem, ColorTheme, ThemeMode, Transaction } from '../types';
 import { DEFAULT_CATEGORIES, INITIAL_TRANSACTIONS } from '../data/initialData';
 
 const STORAGE_KEYS = {
-  TRANSACTIONS: 'expense_ledger_transactions_v2',
-  CATEGORIES: 'expense_ledger_categories_v2',
-  DEFAULT_ALLOWANCE: 'expense_ledger_default_allowance_v2',
-  THEME_MODE: 'expense_ledger_theme_mode_v2',
-  COLOR_THEME: 'expense_ledger_color_theme_v2',
+  TRANSACTIONS: 'expense_ledger_transactions_v3',
+  CATEGORIES: 'expense_ledger_categories_v3',
+  DEFAULT_ALLOWANCE: 'expense_ledger_default_allowance_v3',
+  THEME_MODE: 'expense_ledger_theme_mode_v3',
+  COLOR_THEME: 'expense_ledger_color_theme_v3',
 };
 
 export function loadTransactions(): Transaction[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
     if (!raw) {
-      const oldRaw = localStorage.getItem('parent_ledger_transactions_v1');
-      if (oldRaw) {
-        try {
-          const oldList: Transaction[] = JSON.parse(oldRaw);
-          saveTransactions(oldList);
-          return oldList;
-        } catch {
-          // ignore
-        }
-      }
-      saveTransactions(INITIAL_TRANSACTIONS);
-      return INITIAL_TRANSACTIONS;
+      // Clean start: no pre-filled personal transactions
+      return [];
     }
     return JSON.parse(raw);
   } catch (err) {
     console.error('Failed to parse transactions from localStorage', err);
-    return INITIAL_TRANSACTIONS;
+    return [];
   }
 }
 

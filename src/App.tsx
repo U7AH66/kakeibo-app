@@ -63,7 +63,12 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [defaultAllowance, setDefaultAllowance] = useState<number>(6000);
-  const [currentMonth, setCurrentMonth] = useState<string>('2026-09');
+  const [currentMonth, setCurrentMonth] = useState<string>(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  });
 
   // Firebase Auth & Sync State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
