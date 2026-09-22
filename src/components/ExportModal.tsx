@@ -31,6 +31,7 @@ interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentMonth: string;
+  periodLabel?: string;
   categories: CategorySummary[];
   totalAmount: number;
   colorTheme?: ColorTheme;
@@ -41,6 +42,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   isOpen,
   onClose,
   currentMonth,
+  periodLabel,
   categories,
   totalAmount,
   colorTheme = 'amber',
@@ -59,24 +61,25 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const getExportText = (): string => {
     switch (formatType) {
       case 'line-text':
-        return generateLineShareText(currentMonth, categories, totalAmount);
+        return generateLineShareText(currentMonth, categories, totalAmount, periodLabel);
       case 'rich-table':
       case 'ascii-table':
-        return generateAsciiTableText(currentMonth, categories, totalAmount);
+        return generateAsciiTableText(currentMonth, categories, totalAmount, periodLabel);
       case 'markdown':
-        return generateMarkdownTable(currentMonth, categories, totalAmount);
+        return generateMarkdownTable(currentMonth, categories, totalAmount, periodLabel);
       case 'tsv':
         return generateTsvTable(categories, totalAmount);
       case 'simple-text':
       default:
         return generateParentMemoText(currentMonth, categories, totalAmount, {
           useCommas,
+          periodLabel,
         });
     }
   };
 
   const handleCopy = async () => {
-    const htmlContent = generateHtmlTable(currentMonth, categories, totalAmount);
+    const htmlContent = generateHtmlTable(currentMonth, categories, totalAmount, periodLabel);
     const plainText = getExportText();
 
     let success = false;

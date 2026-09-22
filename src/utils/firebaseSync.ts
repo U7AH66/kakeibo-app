@@ -6,7 +6,8 @@ import {
   User
 } from 'firebase/auth';
 import { db, auth, googleProvider } from '../lib/firebase';
-import { CategoryItem, Transaction } from '../types';
+import { CategoryItem, PeriodSettings, Transaction } from '../types';
+import { deduplicateCategories } from './storage';
 
 export interface UserLedgerData {
   userId: string;
@@ -14,6 +15,7 @@ export interface UserLedgerData {
   transactions: Transaction[];
   categories: CategoryItem[];
   defaultAllowance: number;
+  periodSettings?: PeriodSettings;
   updatedAt: number;
 }
 
@@ -52,6 +54,15 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
+}
+
+function sanitizeForFirestore<T>(data: T): T {
+  return JSON.parse(
+    JSON.stringify(data, (_, value) => {
+      if (value === undefined) return null;
+      return value;
+    })
+  );
 }
 
 /**
@@ -133,21 +144,56 @@ export async function pushUserLedger(
     transactions: Transaction[];
     categories: CategoryItem[];
     defaultAllowance: number;
+    periodSettings?: PeriodSettings;
   }
 ): Promise<void> {
+  if (!userId) {
+    throw new Error('ユーザーIDが見つかりません');
+  }
   const ledgerPath = `users/${userId}/ledger/main`;
   try {
     const ledgerDocRef = doc(db, 'users', userId, 'ledger', 'main');
-    const data: UserLedgerData = {
+
+    // Clean and validate each transaction to avoid undefined or type errors
+    const sanitizedTransactions = (payload.transactions || []).map((t) => ({
+      id: String(t.id),
+      month: String(t.month || ''),
+      date: String(t.date || ''),
+      category: String(t.category || ''),
+      amount: Number(t.amount) || 0,
+      memo: t.memo ? String(t.memo).trim() : '',
+      createdAt: Number(t.createdAt) || Date.now(),
+    }));
+
+    // Clean and deduplicate categories
+    const cleanedCategories = (payload.categories || []).map((c, index) => ({
+      id: String(c.id || `cat-${index}`),
+      name: String(c.name || ''),
+      iconName: String(c.iconName || 'Tag'),
+      color: c.color ? String(c.color) : '',
+      order: typeof c.order === 'number' ? c.order : index,
+    }));
+    const sanitizedCategories = deduplicateCategories(cleanedCategories);
+
+    const rawData = {
       userId,
       userEmail: userEmail || null,
-      transactions: payload.transactions,
-      categories: payload.categories,
-      defaultAllowance: payload.defaultAllowance,
+      transactions: sanitizedTransactions,
+      categories: sanitizedCategories,
+      defaultAllowance: Number(payload.defaultAllowance) || 0,
+      periodSettings: payload.periodSettings
+        ? {
+            cutoffDay: Number(payload.periodSettings.cutoffDay) || 18,
+            rangeMode: payload.periodSettings.rangeMode || 'prev_day_to_cur_day',
+            defaultDateType: payload.periodSettings.defaultDateType || 'cutoff_day',
+            customDefaultDay: Number(payload.periodSettings.customDefaultDay) || 18,
+          }
+        : null,
       updatedAt: Date.now(),
     };
 
-    await setDoc(ledgerDocRef, data);
+    const cleanData = sanitizeForFirestore(rawData);
+    await setDoc(ledgerDocRef, cleanData);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, ledgerPath);
   }

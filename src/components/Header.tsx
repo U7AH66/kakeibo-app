@@ -13,6 +13,7 @@ import {
   RefreshCw,
   LogIn,
   User as UserIcon,
+  AlertCircle,
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { formatMonthLabel } from '../utils/format';
@@ -21,6 +22,7 @@ import { THEME_CONFIGS } from '../utils/theme';
 
 interface HeaderProps {
   currentMonth: string;
+  periodRangeLabel?: string;
   onMonthChange: (newMonth: string) => void;
   onOpenExport: () => void;
   onOpenManageCategories: () => void;
@@ -36,6 +38,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   currentMonth,
+  periodRangeLabel,
   onMonthChange,
   onOpenExport,
   onOpenManageCategories,
@@ -126,11 +129,18 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={handleResetToCurrentMonth}
-            title="クリックで今月に戻る"
-            className="px-2.5 py-0.5 flex items-center space-x-1.5 font-semibold text-neutral-800 dark:text-neutral-200 hover:text-amber-700 dark:hover:text-amber-400 text-sm transition"
+            title="クリックで今期（現在のサイクル）に戻る"
+            className="px-2.5 py-0.5 flex flex-col items-center justify-center font-semibold text-neutral-800 dark:text-neutral-200 hover:text-amber-700 dark:hover:text-amber-400 text-sm transition"
           >
-            <Calendar className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
-            <span>{formatMonthLabel(currentMonth)}</span>
+            <div className="flex items-center space-x-1.5 leading-tight">
+              <Calendar className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
+              <span>{formatMonthLabel(currentMonth)}度</span>
+            </div>
+            {periodRangeLabel && (
+              <span className="text-[10px] font-mono font-medium text-neutral-500 dark:text-neutral-400 leading-tight tracking-tight">
+                {periodRangeLabel}
+              </span>
+            )}
           </button>
 
           <button
@@ -162,6 +172,8 @@ export const Header: React.FC<HeaderProps> = ({
                   ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                   : syncStatus === 'syncing'
                   ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-800'
+                  : syncStatus === 'error'
+                  ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800'
                   : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700'
                 : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
             }`}
@@ -180,11 +192,15 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
                 {syncStatus === 'syncing' ? (
                   <RefreshCw className="w-3.5 h-3.5 text-sky-500 animate-spin shrink-0" />
+                ) : syncStatus === 'error' ? (
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                 ) : (
                   <CloudCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 )}
                 <span className="hidden sm:inline max-w-[90px] truncate font-medium">
-                  {currentUser.displayName?.split(' ')[0] || '同期中'}
+                  {syncStatus === 'error'
+                    ? '再同期'
+                    : currentUser.displayName?.split(' ')[0] || '同期中'}
                 </span>
               </>
             ) : (

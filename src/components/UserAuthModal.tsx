@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Cloud, ShieldCheck, User as UserIcon, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { LogOut, Cloud, ShieldCheck, User as UserIcon, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { ColorTheme, SyncStatus } from '../types';
 import { THEME_CONFIGS } from '../utils/theme';
@@ -134,10 +134,29 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
                       {currentUser.email}
                     </p>
                     <div className="flex items-center space-x-1.5 mt-0.5">
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40">
-                        <CheckCircle2 className="w-2.5 h-2.5 mr-1" />
-                        専用クラウド同期中
-                      </span>
+                      {syncStatus === 'synced' && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40">
+                          <CheckCircle2 className="w-2.5 h-2.5 mr-1" />
+                          自動保存: 最新の状態に同期済み
+                        </span>
+                      )}
+                      {syncStatus === 'syncing' && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-300/40">
+                          <RefreshCw className="w-2.5 h-2.5 mr-1 animate-spin" />
+                          クラウドと同期中...
+                        </span>
+                      )}
+                      {syncStatus === 'error' && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300/40">
+                          <AlertCircle className="w-2.5 h-2.5 mr-1" />
+                          同期一時エラー（再試行できます）
+                        </span>
+                      )}
+                      {syncStatus === 'offline' && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-300/40">
+                          オフライン（端末にのみ保存中）
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -153,21 +172,21 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
                     <span className="text-neutral-400">最終同期:</span>{' '}
                     <span className="font-semibold text-neutral-800 dark:text-neutral-200">
                       {lastSyncedAt
-                        ? new Date(lastSyncedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+                        ? new Date(lastSyncedAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                         : 'たった今'}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Privacy assurance banner */}
-              <div className="p-3 bg-sky-50/80 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-800/40 rounded-xl space-y-1">
+              {/* Privacy assurance & Auto-sync banner */}
+              <div className="p-3 bg-sky-50/80 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-800/40 rounded-xl space-y-1.5">
                 <p className="font-bold text-sky-900 dark:text-sky-200 flex items-center space-x-1">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>あなたのアカウント限定で厳重保護</span>
+                  <span>リアルタイム自動同期中（安全に保護）</span>
                 </p>
                 <p className="text-[11px] text-sky-800/80 dark:text-sky-300/80 leading-relaxed">
-                  データはあなたのGoogleアカウントID（UID）にのみ紐づいてFirestoreに保存されます。共有コードや他人からの閲覧・編集は一切不可能です。スマホや別PCで同じGoogleアカウントでログインすると、即座に同期されます。
+                  支出の登録・削除・設定変更を行うと、<strong>バックグラウンドで自動的にクラウドへ保存</strong>されます。スマホや他のPCで同じGoogleアカウントで開くと即座に同期されます。
                 </p>
               </div>
 

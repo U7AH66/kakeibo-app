@@ -5,14 +5,16 @@ export function formatJPY(amount: number, withSymbol = true): string {
   return withSymbol ? `¥${formatted}` : formatted;
 }
 
-export function formatMonthLabel(yearMonth: string): string {
+export function formatMonthLabel(yearMonth: string, periodLabel?: string): string {
   const [year, month] = yearMonth.split('-');
-  return `${year}年${parseInt(month, 10)}月`;
+  const base = `${year}年${parseInt(month, 10)}月度`;
+  return periodLabel ? `${base} (${periodLabel})` : `${year}年${parseInt(month, 10)}月`;
 }
 
-export function formatShortMonth(yearMonth: string): string {
+export function formatShortMonth(yearMonth: string, periodLabel?: string): string {
   const parts = yearMonth.split('-');
-  return `${parseInt(parts[1], 10)}月`;
+  const base = `${parseInt(parts[1], 10)}月度`;
+  return periodLabel ? `${base} (${periodLabel})` : `${parseInt(parts[1], 10)}月`;
 }
 
 export function formatDateLabel(dateStr: string): string {
@@ -41,10 +43,10 @@ export function generateParentMemoText(
   yearMonth: string,
   categories: CategorySummary[],
   total: number,
-  options?: { useCommas?: boolean; includeDetails?: boolean }
+  options?: { useCommas?: boolean; includeDetails?: boolean; periodLabel?: string }
 ): string {
   const useCommas = options?.useCommas ?? false;
-  const monthName = formatShortMonth(yearMonth);
+  const monthName = formatShortMonth(yearMonth, options?.periodLabel);
   const sorted = getSortedSummaries(categories);
 
   const lines: string[] = [];
@@ -77,9 +79,10 @@ export function generateParentMemoText(
 export function generateLineShareText(
   yearMonth: string,
   categories: CategorySummary[],
-  total: number
+  total: number,
+  periodLabel?: string
 ): string {
-  const monthLabel = formatMonthLabel(yearMonth);
+  const monthLabel = formatMonthLabel(yearMonth, periodLabel);
   const sorted = getSortedSummaries(categories).filter((c) => c.total > 0);
 
   const lines: string[] = [];
@@ -104,9 +107,10 @@ export function generateLineShareText(
 export function generateAsciiTableText(
   yearMonth: string,
   categories: CategorySummary[],
-  total: number
+  total: number,
+  periodLabel?: string
 ): string {
-  const monthLabel = formatMonthLabel(yearMonth);
+  const monthLabel = formatMonthLabel(yearMonth, periodLabel);
   const sorted = getSortedSummaries(categories).filter((c) => c.total > 0);
 
   // Pad helper for Japanese wide characters
@@ -177,9 +181,10 @@ export function generateAsciiTableText(
 export function generateMarkdownTable(
   yearMonth: string,
   categories: CategorySummary[],
-  total: number
+  total: number,
+  periodLabel?: string
 ): string {
-  const monthLabel = formatMonthLabel(yearMonth);
+  const monthLabel = formatMonthLabel(yearMonth, periodLabel);
   const sorted = getSortedSummaries(categories).filter((c) => c.total > 0);
 
   const lines: string[] = [];
@@ -208,9 +213,10 @@ export function generateMarkdownTable(
 export function generateHtmlTable(
   yearMonth: string,
   categories: CategorySummary[],
-  total: number
+  total: number,
+  periodLabel?: string
 ): string {
-  const monthLabel = formatMonthLabel(yearMonth);
+  const monthLabel = formatMonthLabel(yearMonth, periodLabel);
   const sorted = getSortedSummaries(categories).filter((c) => c.total > 0);
 
   let html = `<div>

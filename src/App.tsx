@@ -9,21 +9,30 @@ import {
   CategoryItem,
   CategorySummary,
   ColorTheme,
+  PeriodSettings,
   ThemeMode,
   Transaction,
 } from './types';
 import {
+  deduplicateCategories,
   loadCategories,
   loadColorTheme,
   loadDefaultAllowance,
+  loadPeriodSettings,
   loadThemeMode,
   loadTransactions,
   saveCategories,
   saveColorTheme,
   saveDefaultAllowance,
+  savePeriodSettings,
   saveThemeMode,
   saveTransactions,
 } from './utils/storage';
+import {
+  DEFAULT_PERIOD_SETTINGS,
+  getCurrentCycleMonth,
+  getMonthDateRange,
+} from './utils/period';
 import { INITIAL_TRANSACTIONS, DEFAULT_CATEGORIES } from './data/initialData';
 import {
   formatJPY,
@@ -63,11 +72,10 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [defaultAllowance, setDefaultAllowance] = useState<number>(0);
+  const [periodSettings, setPeriodSettings] = useState<PeriodSettings>(() => loadPeriodSettings());
   const [currentMonth, setCurrentMonth] = useState<string>(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}`;
+    const settings = loadPeriodSettings();
+    return getCurrentCycleMonth(settings);
   });
 
   // Firebase Auth & Sync State
@@ -104,9 +112,11 @@ export default function App() {
     const localTxs = loadTransactions();
     const localCats = loadCategories();
     const localAllowance = loadDefaultAllowance();
+    const localPeriod = loadPeriodSettings();
     setTransactions(localTxs);
     setCategories(localCats);
     setDefaultAllowance(localAllowance);
+    setPeriodSettings(localPeriod);
     setThemeMode(loadThemeMode());
     setColorTheme(loadColorTheme());
 
@@ -138,35 +148,66 @@ export default function App() {
         try {
           // Fetch existing remote ledger if any
           const remoteData = await fetchUserLedger(user.uid);
+          const localTxs = loadTransactions();
+          const localCats = loadCategories();
+          const localAllow = loadDefaultAllowance();
+          const localPeriod = loadPeriodSettings();
+
           if (remoteData) {
             isRemoteUpdatingRef.current = true;
-            if (remoteData.transactions && Array.isArray(remoteData.transactions)) {
-              setTransactions(remoteData.transactions);
-              saveTransactions(remoteData.transactions);
-            }
-            if (remoteData.categories && Array.isArray(remoteData.categories)) {
-              setCategories(remoteData.categories);
-              saveCategories(remoteData.categories);
-            }
-            if (typeof remoteData.defaultAllowance === 'number') {
-              setDefaultAllowance(remoteData.defaultAllowance);
-              saveDefaultAllowance(remoteData.defaultAllowance);
-            }
-            setLastSyncedAt(remoteData.updatedAt);
+            // Smart merge: keep all remote, add any local transactions that aren't already in remote
+            const remoteTxIds = new Set((remoteData.transactions || []).map((t) => t.id));
+            const newLocalTxs = localTxs.filter((t) => !remoteTxIds.has(t.id));
+            const mergedTxs = [...(remoteData.transactions || []), ...newLocalTxs];
+
+            // Smart merge categories
+            const dedupedRemoteCats = deduplicateCategories(remoteData.categories || []);
+            const remoteCatNames = new Set(dedupedRemoteCats.map((c) => c.name));
+            const newLocalCats = localCats.filter((c) => !remoteCatNames.has(c.name));
+            const mergedCats = deduplicateCategories([...dedupedRemoteCats, ...newLocalCats]);
+
+            const mergedAllowance = typeof remoteData.defaultAllowance === 'number'
+              ? remoteData.defaultAllowance
+              : localAllow;
+
+            const mergedPeriod = remoteData.periodSettings || localPeriod;
+
+            setTransactions(mergedTxs);
+            saveTransactions(mergedTxs);
+            setCategories(mergedCats);
+            saveCategories(mergedCats);
+            setDefaultAllowance(mergedAllowance);
+            saveDefaultAllowance(mergedAllowance);
+            setPeriodSettings(mergedPeriod);
+            savePeriodSettings(mergedPeriod);
+
+            setLastSyncedAt(remoteData.updatedAt || Date.now());
             setSyncStatus('synced');
+
+            // If there were local additions that weren't in remote, auto-push merged data back to cloud
+            if (newLocalTxs.length > 0 || newLocalCats.length > 0) {
+              await pushUserLedger(user.uid, user.email, {
+                transactions: mergedTxs,
+                categories: mergedCats,
+                defaultAllowance: mergedAllowance,
+                periodSettings: mergedPeriod,
+              });
+            }
+
             setTimeout(() => {
               isRemoteUpdatingRef.current = false;
             }, 300);
           } else {
             // First time login: seed user cloud ledger with current local data
-            const currentTxs = loadTransactions();
-            const currentCats = loadCategories();
-            const currentAllow = loadDefaultAllowance();
+            const dedupedLocalCats = deduplicateCategories(localCats);
             await pushUserLedger(user.uid, user.email, {
-              transactions: currentTxs,
-              categories: currentCats,
-              defaultAllowance: currentAllow,
+              transactions: localTxs,
+              categories: dedupedLocalCats,
+              defaultAllowance: localAllow,
+              periodSettings: localPeriod,
             });
+            setCategories(dedupedLocalCats);
+            saveCategories(dedupedLocalCats);
             setLastSyncedAt(Date.now());
             setSyncStatus('synced');
           }
@@ -182,12 +223,17 @@ export default function App() {
                 saveTransactions(updatedRemote.transactions);
               }
               if (updatedRemote.categories && Array.isArray(updatedRemote.categories)) {
-                setCategories(updatedRemote.categories);
-                saveCategories(updatedRemote.categories);
+                const deduped = deduplicateCategories(updatedRemote.categories);
+                setCategories(deduped);
+                saveCategories(deduped);
               }
               if (typeof updatedRemote.defaultAllowance === 'number') {
                 setDefaultAllowance(updatedRemote.defaultAllowance);
                 saveDefaultAllowance(updatedRemote.defaultAllowance);
+              }
+              if (updatedRemote.periodSettings) {
+                setPeriodSettings(updatedRemote.periodSettings);
+                savePeriodSettings(updatedRemote.periodSettings);
               }
               setLastSyncedAt(updatedRemote.updatedAt || Date.now());
               setSyncStatus('synced');
@@ -271,10 +317,21 @@ export default function App() {
     };
   }, []);
 
-  // Transactions in current month
+  // Date range for current billing/accounting cycle
+  const currentMonthRange = useMemo(() => {
+    return getMonthDateRange(currentMonth, periodSettings);
+  }, [currentMonth, periodSettings]);
+
+  // Transactions in current cycle month
   const monthTransactions = useMemo(() => {
-    return transactions.filter((t) => t.month === currentMonth);
-  }, [transactions, currentMonth]);
+    const { startDate, endDate } = currentMonthRange;
+    return transactions.filter((t) => {
+      if (t.date) {
+        return t.date >= startDate && t.date <= endDate;
+      }
+      return t.month === currentMonth;
+    });
+  }, [transactions, currentMonthRange, currentMonth]);
 
   // Aggregate by category
   const categorySummaries = useMemo<CategorySummary[]>(() => {
@@ -335,7 +392,8 @@ export default function App() {
   const syncToCloud = async (
     newTxs: Transaction[],
     newCats: CategoryItem[],
-    allowanceVal: number
+    allowanceVal: number,
+    settingsVal: PeriodSettings = periodSettings
   ) => {
     if (!currentUser) {
       setSyncStatus('offline');
@@ -348,13 +406,36 @@ export default function App() {
         transactions: newTxs,
         categories: newCats,
         defaultAllowance: allowanceVal,
+        periodSettings: settingsVal,
       });
       setSyncStatus('synced');
       setLastSyncedAt(Date.now());
-    } catch (err) {
-      console.warn('Failed to sync changes to user cloud ledger:', err);
-      setSyncStatus('error');
+    } catch (err: any) {
+      console.warn('Initial push failed, attempting retry in 1.2s...', err);
+      setTimeout(async () => {
+        try {
+          if (!currentUser) return;
+          await pushUserLedger(currentUser.uid, currentUser.email, {
+            transactions: newTxs,
+            categories: newCats,
+            defaultAllowance: allowanceVal,
+            periodSettings: settingsVal,
+          });
+          setSyncStatus('synced');
+          setLastSyncedAt(Date.now());
+        } catch (retryErr: any) {
+          console.error('Failed to sync changes to user cloud ledger:', retryErr);
+          setSyncStatus('error');
+        }
+      }, 1200);
     }
+  };
+
+  const handleSavePeriodSettings = (newSettings: PeriodSettings) => {
+    setPeriodSettings(newSettings);
+    savePeriodSettings(newSettings);
+    syncToCloud(transactions, categories, defaultAllowance, newSettings);
+    showToast(`記録期間を「毎月${newSettings.cutoffDay}日締め」に更新しました`);
   };
 
   // Add transaction (auto-accumulates to category total & syncs to cloud)
@@ -410,10 +491,10 @@ export default function App() {
   const handleAddDefaultAllowance = () => {
     handleAddTransaction({
       month: currentMonth,
-      date: `${currentMonth}-01`,
+      date: currentMonthRange.startDate,
       category: 'お小遣い',
       amount: defaultAllowance,
-      memo: '今月のお小遣い基本額',
+      memo: `${currentMonthRange.shortMonth}度のお小遣い基本額`,
     });
   };
 
@@ -455,13 +536,15 @@ export default function App() {
         transactions,
         categories,
         defaultAllowance,
+        periodSettings,
       });
       setSyncStatus('synced');
       setLastSyncedAt(Date.now());
-      showToast('Googleアカウントのクラウド領域に同期保存しました');
-    } catch {
+      showToast(`クラウドと同期完了（データ${transactions.length}件・${categories.length}品目を保存しました）`);
+    } catch (err: any) {
+      console.error('Manual force sync failed:', err);
       setSyncStatus('error');
-      showToast('クラウド同期に失敗しました');
+      showToast('クラウド同期に失敗しました。通信環境や認証状態をご確認ください。');
     }
   };
 
@@ -502,7 +585,9 @@ export default function App() {
     saveCategories(DEFAULT_CATEGORIES);
     setDefaultAllowance(0);
     saveDefaultAllowance(0);
-    syncToCloud(INITIAL_TRANSACTIONS, DEFAULT_CATEGORIES, 0);
+    setPeriodSettings(DEFAULT_PERIOD_SETTINGS);
+    savePeriodSettings(DEFAULT_PERIOD_SETTINGS);
+    syncToCloud(INITIAL_TRANSACTIONS, DEFAULT_CATEGORIES, 0, DEFAULT_PERIOD_SETTINGS);
     showToast('データを初期状態にリセットしました');
   };
 
@@ -513,6 +598,7 @@ export default function App() {
       {/* Header */}
       <Header
         currentMonth={currentMonth}
+        periodRangeLabel={currentMonthRange.label}
         onMonthChange={(newM) => setCurrentMonth(newM)}
         onOpenExport={() => setIsExportOpen(true)}
         onOpenManageCategories={() => setIsCategoryManagerOpen(true)}
@@ -531,6 +617,7 @@ export default function App() {
         {/* Hero Summary Card */}
         <SummaryCard
           currentMonth={currentMonth}
+          periodRangeLabel={currentMonthRange.label}
           totalAmount={totalAmount}
           categoryCount={categorySummaries.length}
           transactionCount={monthTransactions.length}
@@ -555,7 +642,7 @@ export default function App() {
               </div>
               <div>
                 <p className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
-                  {formatShortMonth(currentMonth)}の「お小遣い（基本額）」が未登録です
+                  {currentMonthRange.shortMonth}度の「お小遣い（基本額）」が未登録です
                 </p>
                 <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
                   タップすると基本額（{formatJPY(defaultAllowance)}）を一発でリストに追加できます
@@ -606,7 +693,7 @@ export default function App() {
           </div>
 
           <div className="hidden sm:block text-xs text-neutral-400 dark:text-neutral-500 font-medium">
-            {formatMonthLabel(currentMonth)}
+            {currentMonthRange.shortMonth}度 ({currentMonthRange.label})
           </div>
         </div>
 
@@ -658,6 +745,8 @@ export default function App() {
         onAddTransaction={handleAddTransaction}
         onAddNewCategory={handleAddNewCategory}
         colorTheme={colorTheme}
+        periodSettings={periodSettings}
+        onOpenSettings={() => setIsCategoryManagerOpen(true)}
       />
 
       <ExportModal
@@ -688,6 +777,9 @@ export default function App() {
           syncToCloud(transactions, categories, amount);
           showToast(`基本お小遣い額を ${formatJPY(amount)} に更新しました`);
         }}
+        periodSettings={periodSettings}
+        onSavePeriodSettings={handleSavePeriodSettings}
+        currentMonth={currentMonth}
         onResetToSampleData={handleResetToSampleData}
         onOpenSync={() => setIsAuthModalOpen(true)}
         colorTheme={colorTheme}

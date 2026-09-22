@@ -28,3 +28,13 @@ export type ColorTheme = 'amber' | 'emerald' | 'indigo' | 'rose';
 export type TableExportFormat = 'rich-table' | 'line-text' | 'simple-text' | 'ascii-table' | 'markdown' | 'tsv';
 
 export type SyncStatus = 'synced' | 'syncing' | 'offline' | 'error';
+
+export type DefaultDateType = 'cutoff_day' | 'today' | 'custom_day';
+export type PeriodRangeMode = 'prev_day_to_cur_day' | 'cur_cutoff' | 'cur_start' | 'calendar';
+
+export interface PeriodSettings {
+  cutoffDay: number; // e.g. 18 (1-31)
+  rangeMode: PeriodRangeMode; // default 'prev_day_to_cur_day' (e.g. 9/18〜10/18)
+  defaultDateType: DefaultDateType; // default 'cutoff_day' or 'today'
+  customDefaultDay: number; // 1-31 (used when defaultDateType === 'custom_day')
+}

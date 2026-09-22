@@ -25,6 +25,10 @@
           "type": "number",
           "description": "Default monthly allowance amount"
         },
+        "periodSettings": {
+          "type": "object",
+          "description": "Custom billing cycle cutoff and default recording date settings"
+        },
         "updatedAt": {
           "type": "number",
           "description": "Timestamp of the last update"

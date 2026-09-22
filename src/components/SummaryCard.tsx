@@ -15,6 +15,7 @@ import { THEME_CONFIGS } from '../utils/theme';
 
 interface SummaryCardProps {
   currentMonth: string;
+  periodRangeLabel?: string;
   totalAmount: number;
   categoryCount: number;
   transactionCount: number;
@@ -29,6 +30,7 @@ interface SummaryCardProps {
 
 export const SummaryCard: React.FC<SummaryCardProps> = ({
   currentMonth,
+  periodRangeLabel,
   totalAmount,
   categoryCount,
   transactionCount,
@@ -48,7 +50,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div className="flex items-center space-x-2">
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${curConfig.badge}`}>
-            {shortMonth}の集計
+            {shortMonth}度{periodRangeLabel ? ` (${periodRangeLabel})` : ''}の集計
           </span>
           <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
             自動加算・家計簿

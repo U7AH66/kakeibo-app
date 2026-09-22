@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, ArrowRight } from 'lucide-react';
-import { CategoryItem, ColorTheme, Transaction } from '../types';
+import { X, Plus, ArrowRight, Calendar, Clock, Settings } from 'lucide-react';
+import { CategoryItem, ColorTheme, PeriodSettings, Transaction } from '../types';
 import { CategoryIcon } from './CategoryIcon';
 import { formatJPY } from '../utils/format';
 import { THEME_CONFIGS } from '../utils/theme';
+import {
+  DEFAULT_PERIOD_SETTINGS,
+  getDefaultRecordDate,
+  getMonthDateRange,
+  getMonthForDate,
+} from '../utils/period';
 
 interface QuickEntryModalProps {
   isOpen: boolean;
@@ -15,6 +21,8 @@ interface QuickEntryModalProps {
   onAddTransaction: (data: Omit<Transaction, 'id' | 'createdAt'>) => void;
   onAddNewCategory: (name: string) => void;
   colorTheme?: ColorTheme;
+  periodSettings?: PeriodSettings;
+  onOpenSettings?: () => void;
 }
 
 export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({
@@ -27,6 +35,8 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({
   onAddTransaction,
   onAddNewCategory,
   colorTheme = 'amber',
+  periodSettings = DEFAULT_PERIOD_SETTINGS,
+  onOpenSettings,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('飯');
   const [amountStr, setAmountStr] = useState<string>('');
@@ -36,6 +46,17 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({
   const [newCatName, setNewCatName] = useState('');
 
   const curConfig = THEME_CONFIGS[colorTheme];
+
+  // Helper date strings for quick-select buttons
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+  // Cutoff date for currentMonth
+  const cutoffDay = periodSettings.cutoffDay || 18;
+  const [curYearStr, curMonthStr] = currentMonth.split('-');
+  const cutoffDateStr = `${curYearStr}-${curMonthStr}-${String(cutoffDay).padStart(2, '0')}`;
 
   // Sync initial category and default date
   useEffect(() => {
@@ -49,24 +70,24 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      const today = new Date().toISOString().split('T')[0];
-      if (today.startsWith(currentMonth)) {
-        setDate(today);
-      } else {
-        setDate(`${currentMonth}-01`);
-      }
+      const defaultDate = getDefaultRecordDate(currentMonth, periodSettings);
+      setDate(defaultDate);
       setAmountStr('');
       setMemo('');
       setIsCreatingCategory(false);
       setNewCatName('');
     }
-  }, [isOpen, currentMonth]);
+  }, [isOpen, currentMonth, periodSettings]);
 
   if (!isOpen) return null;
 
   const currentTotal = categoryTotals[selectedCategory] || 0;
   const numAmount = parseInt(amountStr, 10) || 0;
   const newTotal = currentTotal + numAmount;
+
+  // Real-time calculation of target cycle month for the selected date
+  const targetCycleMonth = getMonthForDate(date || todayStr, periodSettings);
+  const targetDateRange = getMonthDateRange(targetCycleMonth, periodSettings);
 
   const handleQuickAddAmount = (addValue: number) => {
     const cur = parseInt(amountStr, 10) || 0;
@@ -78,8 +99,8 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({
     if (numAmount <= 0) return;
 
     onAddTransaction({
-      month: currentMonth,
-      date: date || `${currentMonth}-01`,
+      month: targetCycleMonth,
+      date: date || todayStr,
       category: selectedCategory,
       amount: numAmount,
       memo: memo.trim() || undefined,
@@ -229,12 +250,13 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({
 
             {/* Category Grid */}
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
-              {categories.map((cat) => {
+              {categories.map((cat, idx) => {
                 const isSelected = selectedCategory === cat.name;
                 const totalForCat = categoryTotals[cat.name] || 0;
+                const buttonKey = cat.id ? `${cat.id}-${cat.name}-${idx}` : `entry-cat-${idx}-${cat.name}`;
                 return (
                   <button
-                    key={cat.id}
+                    key={buttonKey}
                     type="button"
                     onClick={() => setSelectedCategory(cat.name)}
                     className={`flex flex-col items-start p-2.5 rounded-xl text-left border transition relative ${
@@ -292,12 +314,54 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({
           {/* Date & Memo in two columns */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label
-                htmlFor="input-date"
-                className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1"
-              >
-                日付
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label
+                  htmlFor="input-date"
+                  className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300"
+                >
+                  日付
+                </label>
+                {/* Quick 1-tap presets to eliminate calendar picking */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setDate(cutoffDateStr)}
+                    className={`px-1.5 py-0.5 text-[10px] font-bold rounded-md border transition ${
+                      date === cutoffDateStr
+                        ? 'bg-amber-600 text-white border-amber-600'
+                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                    }`}
+                    title="締め日（基準日）をセット"
+                  >
+                    締め日({cutoffDay}日)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDate(todayStr)}
+                    className={`px-1.5 py-0.5 text-[10px] font-bold rounded-md border transition ${
+                      date === todayStr
+                        ? 'bg-amber-600 text-white border-amber-600'
+                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                    }`}
+                    title="今日の日付をセット"
+                  >
+                    今日
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDate(yesterdayStr)}
+                    className={`px-1.5 py-0.5 text-[10px] font-bold rounded-md border transition ${
+                      date === yesterdayStr
+                        ? 'bg-amber-600 text-white border-amber-600'
+                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                    }`}
+                    title="昨日の日付をセット"
+                  >
+                    昨日
+                  </button>
+                </div>
+              </div>
+
               <input
                 id="input-date"
                 type="date"
@@ -305,7 +369,33 @@ export const QuickEntryModal: React.FC<QuickEntryModalProps> = ({
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-hidden focus:ring-2 focus:ring-amber-500 bg-white dark:bg-neutral-800"
               />
+
+              {/* Destination period notice */}
+              <div className="flex items-center justify-between mt-1 text-[11px]">
+                <span className="text-neutral-500 dark:text-neutral-400 truncate">
+                  計上先:{' '}
+                  <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                    {targetDateRange.shortMonth}度 ({targetDateRange.label})
+                  </span>
+                </span>
+
+                {onOpenSettings && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenSettings();
+                    }}
+                    className="text-amber-700 dark:text-amber-400 hover:underline inline-flex items-center space-x-0.5 font-medium shrink-0 ml-1"
+                    title="締め日や初期入力日付の設定を変更"
+                  >
+                    <Settings className="w-2.5 h-2.5" />
+                    <span>設定</span>
+                  </button>
+                )}
+              </div>
             </div>
+
             <div>
               <label
                 htmlFor="input-memo"
